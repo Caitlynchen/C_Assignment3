@@ -75,6 +75,12 @@ int is_valid_salary(const char *salaryStr) {
     }
     return 1;
 }
+int is_valid_id(int id, const int *id_check_array, int capacity) {
+    if (id <= 0 || id >= capacity || id_check_array[id] != 0) {
+        return 0; // Invalid if ID is non-positive, out of bounds, or already used
+    }
+    return 1; // Valid ID
+}
 
 
 int main(int argc, char *argv[]) {
@@ -92,13 +98,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int capacity = 100; 
+    int capacity = 1000; // Adjust based on maximum expected IDs
     employee *employees = malloc(capacity * sizeof(employee));
     int *id_check_array = calloc(capacity, sizeof(int));
-    if (!employees) {
+    if (!employees || !id_check_array) {
         perror("Memory allocation failed");
         fclose(inputFile);
         if (outputFile) fclose(outputFile);
+        if (employees) free(employees);
+        if (id_check_array) free(id_check_array);
         return 1;
     }
 
@@ -112,34 +120,27 @@ int main(int argc, char *argv[]) {
         }
 
         int id;
-char firstName[50], lastName[50];
-float salary;
+        char firstName[50], lastName[50], salaryStr[50];
+        float salary;
 
-// Parse the line
-int fieldsParsed = sscanf(buffer, "%d,%49[^ ] %49[^,],%f", &id, firstName, lastName, &salary);
+        // Adjust sscanf to parse salary as a string
+        int fieldsParsed = sscanf(buffer, "%d,%49[^ ] %49[^,],%49s", &id, firstName, lastName, salaryStr);
 
-// Check for parsing errors and validation
-if (fieldsParsed != 4) {
-    fprintf(stderr, "Error: Incorrect format on line: %s\n", buffer);
-} else if (id <= 0) {
-    fprintf(stderr, "Error: Invalid employee ID on line: %s\n", buffer);
-} else if (salary < 0.0f) {
-    fprintf(stderr, "Error: Invalid salary on line: %s\n", buffer);
-} else if (id_check_array[id] != 0) {
-    fprintf(stderr, "Error: Duplicate employee ID on line: %s\n", buffer);
-} else {
-    // The salary is already a float due to %f in sscanf, so no need for atof
-    employees[count].employeeID = id;
-    strcpy(employees[count].first_name, firstName);
-    strcpy(employees[count].last_name, lastName);
-    employees[count].employee_salary = salary;
-    id_check_array[id] = 1; // Mark this ID as seen
-    count++;
-}
+        if (fieldsParsed != 4 || !is_valid_id(id, id_check_array, capacity) || !is_valid_salary(salaryStr)) {
+            fprintf(stderr, "Error: Incorrect or invalid format on line: %s\n", buffer);
+        } else {
+            salary = strtof(salaryStr, NULL); // Convert salary string to float
+            employees[count].employeeID = id;
+            strcpy(employees[count].first_name, firstName);
+            strcpy(employees[count].last_name, lastName);
+            employees[count].employee_salary = salary;
+            id_check_array[id] = 1; // Mark this ID as seen
+            count++;
+        }
     }
 
-   quickSort(employees, 0, count - 1); // This will sort the employees as required
-   sort_employees(employees, count, outputFile);  
+    quickSort(employees, 0, count - 1); // Placeholder for sorting function
+    sort_employees(employees, count, outputFile); // Placeholder for sorting and writing function
     free(id_check_array);
     free(employees);
     fclose(inputFile);
